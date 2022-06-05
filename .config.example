@@ -1,0 +1,8 @@
+#!/bin/bash
+# Remove the .example from the file name.
+
+EXTRAVIADOS_API_KEY=
+EXTRAVIADOS_API_URL=
+PYTHON_VENV=
+PAGE_FROM=
+PAGE_TO=

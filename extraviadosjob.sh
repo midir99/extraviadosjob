@@ -6,26 +6,42 @@
 
 set -Eeuo pipefail
 
-EXTRAVIADOS_API_URL=https://extraviados.mx/api/v1
-
 msg() {
   echo >&2 -e "${1-}"
+}
+
+activate_venv() {
+    if [ -n "$PYTHON_VENV" ]
+    then
+        . "${PYTHON_VENV}/bin/activate"
+    fi
 }
 
 count_mpps() {
     http --ignore-stdin --print b "$EXTRAVIADOS_API_URL/mpps/" po_post_url==$1 | jq '.count'
 }
 
+clean_up() {
+    trap - SIGINT SIGTERM ERR EXIT
+    rm -rf "$TEMP_DIR"
+}
+
+. .config
+TEMP_DIR=$(mktemp -d extraviadosjob.XXXXX)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+EXTRAVIADOS_FILE="${TEMP_DIR}/extraviados-full.json"
+
+activate_venv
+
 msg 'step 1: starting web scrapers...'
 
-extraviadoscli mor-custom --approach pages --page-from 1 --page-to 2 > extraviados-list-mor-custom.json &
-extraviadoscli mor-amber  --approach pages --page-from 1 --page-to 2 > extraviados-list-mor-amber.json &
+extraviadoscli mor-custom --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-custom.json" &
+extraviadoscli mor-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-amber.json" &
 wait
 
 msg 'step 2: merging all JSON files obtained...'
 
-EXTRAVIADOS_FILE=extraviados-full.json
-python3 merge-json-lists.py extraviados-list-*.json > "$EXTRAVIADOS_FILE"
+python3 "${SCRIPT_DIR}/merge-json-lists.py" "${TEMP_DIR}"/extraviados-list-*.json > "$EXTRAVIADOS_FILE"
 
 msg "step 3: creating new missing person posters in ${EXTRAVIADOS_API_URL}..."
 
@@ -38,9 +54,8 @@ do
     then
         MPP_NAME=$(jq -r --arg i "$i" '.[$i | tonumber].mp_name' "$EXTRAVIADOS_FILE")
         msg "creating: $MPP_NAME"
-        jq --arg i "$i" '.[$i | tonumber]' "$EXTRAVIADOS_FILE" > mpp.json
-        API_KEY=$(cat .API-KEY)
-        http POST "$EXTRAVIADOS_API_URL/mpps/" "Authorization:Token $API_KEY" < mpp.json
+        jq --arg i "$i" '.[$i | tonumber]' "$EXTRAVIADOS_FILE" > "${TEMP_DIR}/mpp.json"
+        http POST "${EXTRAVIADOS_API_URL}/mpps/" "Authorization:Token $EXTRAVIADOS_API_KEY" < "${TEMP_DIR}/mpp.json"
     else
         MPP_NAME=$(jq -r --arg i "$i" '.[$i | tonumber].mp_name' "$EXTRAVIADOS_FILE")
         msg "ignoring: $MPP_NAME"
@@ -49,6 +64,6 @@ done
 
 msg 'step 4: cleaning up...'
 
-rm -f "$EXTRAVIADOS_FILE" extraviados-list-*.json mpp.json
+clean_up
 
 exit 0
