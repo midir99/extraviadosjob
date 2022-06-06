@@ -26,9 +26,10 @@ clean_up() {
     rm -rf "$TEMP_DIR"
 }
 
-. .config
-TEMP_DIR=$(mktemp -d extraviadosjob.XXXXX)
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+
+. "${SCRIPT_DIR}/.config"
+TEMP_DIR=$(mktemp -d extraviadosjob.XXXXX)
 EXTRAVIADOS_FILE="${TEMP_DIR}/extraviados-full.json"
 
 activate_venv
