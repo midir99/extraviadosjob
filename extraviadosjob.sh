@@ -36,6 +36,9 @@ activate_venv
 
 msg 'step 1: starting web scrapers...'
 
+# Guerrero
+extraviadoscli gro-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-amber.json" &
+# Morelos
 extraviadoscli mor-custom --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-custom.json" &
 extraviadoscli mor-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-amber.json" &
 wait
