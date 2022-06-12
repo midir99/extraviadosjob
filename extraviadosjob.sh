@@ -38,6 +38,7 @@ msg 'step 1: starting web scrapers...'
 
 # Guerrero
 extraviadoscli gro-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-amber.json" &
+extraviadoscli gro-alba   --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-alba.json" &
 # Morelos
 extraviadoscli mor-custom --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-custom.json" &
 extraviadoscli mor-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-amber.json" &
@@ -67,7 +68,7 @@ do
 done
 
 msg 'step 4: updating the counter last update date at extraviados.mx...'
-http PUT "${EXTRAVIADOS_API_URL}/counter/updated_at/" "Authorization:Token $EXTRAVIADOS_API_KEY"
+http --ignore-stdin --timeout=5 PUT "${EXTRAVIADOS_API_URL}/counter/updated_at/" "Authorization:Token $EXTRAVIADOS_API_KEY"
 
 msg 'step 5: cleaning up...'
 
