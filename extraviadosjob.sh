@@ -66,6 +66,9 @@ do
     fi
 done
 
+msg 'step 4: updating the counter last update date at extraviados.mx...'
+http PUT "${EXTRAVIADOS_API_URL}/counter/updated_at/" "Authorization:Token $EXTRAVIADOS_API_KEY"
+
 msg 'step 4: cleaning up...'
 
 clean_up
