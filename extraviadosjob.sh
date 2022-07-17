@@ -10,20 +10,13 @@ msg() {
   echo >&2 -e "${1-}"
 }
 
-activate_venv() {
-    if [ -n "$PYTHON_VENV" ]
-    then
-        . "${PYTHON_VENV}/bin/activate"
-    fi
-}
-
 count_mpps() {
     http --ignore-stdin --print b "$EXTRAVIADOS_API_URL/mpps/" po_post_url==$1 | jq '.count'
 }
 
 clean_up() {
     trap - SIGINT SIGTERM ERR EXIT
-    rm -rf "$TEMP_DIR"
+    rm -rf "$1"
 }
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
@@ -32,16 +25,14 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 TEMP_DIR=$(mktemp -d extraviadosjob.XXXXX)
 EXTRAVIADOS_FILE="${TEMP_DIR}/extraviados-full.json"
 
-activate_venv
-
 msg 'step 1: starting web scrapers...'
 
 # Guerrero
-extraviadoscli gro-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-amber.json" &
-extraviadoscli gro-alba   --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-alba.json" &
+rastreadora gro-amber "$PAGE_FROM" "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-amber.json" &
+rastreadora gro-alba  "$PAGE_FROM" "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-gro-alba.json" &
 # Morelos
-extraviadoscli mor-custom --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-custom.json" &
-extraviadoscli mor-amber  --approach pages --page-from "$PAGE_FROM" --page-to "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-amber.json" &
+rastreadora -scert mor-custom "$PAGE_FROM" "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-custom.json" &
+rastreadora -scert mor-amber  "$PAGE_FROM" "$PAGE_TO" > "${TEMP_DIR}/extraviados-list-mor-amber.json" &
 wait
 
 msg 'step 2: merging all JSON files obtained...'
@@ -72,6 +63,6 @@ http --ignore-stdin --timeout=5 PUT "${EXTRAVIADOS_API_URL}/counter/updated_at/"
 
 msg 'step 5: cleaning up...'
 
-clean_up
+clean_up "$TEMP_DIR"
 
 exit 0
